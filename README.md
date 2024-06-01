@@ -15,6 +15,7 @@
 /mute username<br>
 /news this is a test news
 
+<br><br>
 <code>
 function processCommand($pdo, $userId, $message) {
     global $channelId;
