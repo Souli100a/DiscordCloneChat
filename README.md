@@ -1,8 +1,8 @@
-<br>Create a Databse names Chat
-<br>Use the chat.sql and add the tables to your database
-edit your database connection infos and safe
-and you can chat!
-You can Create Server and Channel.
+<br>Create a Databse names Chat<br>
+<br>Use the chat.sql and add the tables to your database<br>
+<br>edit your database connection infos and safe<br>
+<br>and you can chat!<br>
+<br>You can Create Server and Channel.<br>
 
-Commands in version 1
+<br>Commands in version 1
 /mute username
