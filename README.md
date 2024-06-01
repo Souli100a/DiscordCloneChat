@@ -12,4 +12,34 @@
 5.) Create Invite key for your server and share with user<br>
 
 <br>Commands in version 1
-/mute username
+/mute username<br>
+/news this is a test news
+
+<code>
+function processCommand($pdo, $userId, $message) {
+    global $channelId;
+    if (strpos($message, '/news') === 0) {
+        // Nachricht nach dem Befehl /news fett markieren
+        $newsMessage = '<b>' . htmlspecialchars(substr($message, 6)) . '</b>';
+        // Nachricht in die Datenbank einfügen
+        $stmt = $pdo->prepare('INSERT INTO messages (channel_id, user_id, message) VALUES (?, ?, ?)');
+        $stmt->execute([$channelId, $userId, $newsMessage]);
+        return 'News message sent!';
+    } elseif (strpos($message, '/mute') === 0) {
+        // Benutzer stummschalten
+        $parts = explode(' ', $message);
+        if (count($parts) > 1) {
+            $usernameToMute = $parts[1];
+            $stmt = $pdo->prepare('UPDATE users SET is_muted = 1 WHERE username = ?');
+            $stmt->execute([$usernameToMute]);
+            return $usernameToMute . ' has been muted.';
+        } else {
+            return 'Please specify a username to mute.';
+        }
+    }
+
+    // Andere Befehle hier hinzufügen
+
+    return 'Command not recognized.';
+}
+</code>
