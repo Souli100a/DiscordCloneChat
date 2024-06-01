@@ -4,7 +4,7 @@
 <br>and you can use the chat!<br>
 <br>You can Create Server and Channel.<br>
 
-<br><br>
+<br>
 1.) Chat with Server and Channel<br>
 2.) Register and Login system<br>
 3.) Use the command /mute {username} can you mute a user in the chat<br>
@@ -15,7 +15,7 @@
 /mute username<br>
 /news this is a test news
 
-<br><br>
+<br><br><br><br>
 <code>
 function processCommand($pdo, $userId, $message) {
     global $channelId;
@@ -38,9 +38,6 @@ function processCommand($pdo, $userId, $message) {
             return 'Please specify a username to mute.';
         }
     }
-
-    // Andere Befehle hier hinzufügen
-
     return 'Command not recognized.';
 }
 </code>
