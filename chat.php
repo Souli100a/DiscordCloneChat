@@ -20,7 +20,7 @@ if ($serverId) {
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
     $message = $_POST['message'];
 
     // Prüfen, ob der Benutzer stummgeschaltet ist
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // Nachricht in die Datenbank einfügen
-    if ($channelId) {
+    if ($channelId && !empty($message)) {
         $stmt = $pdo->prepare('INSERT INTO messages (channel_id, user_id, message) VALUES (?, ?, ?)');
         $stmt->execute([$channelId, $_SESSION['user_id'], $message]);
     }
@@ -55,6 +55,34 @@ if ($channelId) {
 } else {
     $messages = [];
 }
+
+function processCommand($pdo, $userId, $message) {
+    global $channelId;
+    if (strpos($message, '/news') === 0) {
+        // Nachricht nach dem Befehl /news fett markieren
+        $newsMessage = '<b>' . htmlspecialchars(substr($message, 6)) . '</b>';
+        // Nachricht in die Datenbank einfügen
+        $stmt = $pdo->prepare('INSERT INTO messages (channel_id, user_id, message) VALUES (?, ?, ?)');
+        $stmt->execute([$channelId, $userId, $newsMessage]);
+        return 'News message sent!';
+    } elseif (strpos($message, '/mute') === 0) {
+        // Benutzer stummschalten
+        $parts = explode(' ', $message);
+        if (count($parts) > 1) {
+            $usernameToMute = $parts[1];
+            $stmt = $pdo->prepare('UPDATE users SET is_muted = 1 WHERE username = ?');
+            $stmt->execute([$usernameToMute]);
+            return $usernameToMute . ' has been muted.';
+        } else {
+            return 'Please specify a username to mute.';
+        }
+    }
+
+    // Andere Befehle hier hinzufügen
+
+    return 'Command not recognized.';
+}
+
 
 // Funktion zum Anzeigen der Fehlermeldung
 function showError($message) {
@@ -80,72 +108,116 @@ function showSuccess($message) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/emojionearea/3.4.2/emojionearea.min.css" integrity="sha512-ExjxAPLbJB/xE0nQqMGBZGrkYXNKXc2NCNBrL5r+lfN7NeAeEqafQH2RxyyPq67lPCocQnt9Y5xwJ+U+kmX0Xw==" crossorigin="anonymous" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/emojionearea/3.4.2/emojionearea.min.js" integrity="sha512-JeyXo+zZ/1xSffOHfG2rvIbj+uPO5t34QfA53z8F5UG+YXxMldXuIY2lc3tNUX7NtxNyvI7V9NTKtHLh6Lo+VQ==" crossorigin="anonymous"></script>
 
+    <style>
+        body {
+            background-color: #36393f;
+            color: #dcddde;
+            font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        .container-fluid {
+            padding: 0;
+        }
+        .list-group-item {
+            background-color: #2f3136;
+            border: none;
+            color: #dcddde;
+        }
+        .list-group-item:hover {
+            background-color: #393c43;
+        }
+        .border {
+            background-color: #2f3136;
+            border: none;
+            color: #dcddde;
+        }
+        .form-control {
+            background-color: #40444b;
+            border: none;
+            color: #dcddde;
+        }
+        .btn-primary {
+            background-color: #7289da;
+            border: none;
+        }
+        #volume-meter {
+            background-color: #2f3136;
+        }
+        a {
+            color: #7289da;
+        }
+        a:hover {
+            text-decoration: none;
+            color: #a3b0e4;
+        }
+    </style>
+
     <script>
         $(document).ready(function() {
-            $("#message").emojioneArea();
+            $("#message").emojioneArea({
+                pickerPosition: "top",
+                tonesStyle: "bullet"
+            });
         });
-    </script>
-    
-    <script>
+
         var pushToTalkKey = 'Control'; // Beispiel: "Control" Taste
         var isPushToTalkActive = false;
 
         document.addEventListener('keydown', function(event) {
-          if (event.key === pushToTalkKey && !isPushToTalkActive) {
-            // Starte das Senden von Audiodaten
-            isPushToTalkActive = true;
-            startSendingAudio();
-          }
+            if (event.key === pushToTalkKey && !isPushToTalkActive) {
+                // Starte das Senden von Audiodaten
+                isPushToTalkActive = true;
+                startSendingAudio();
+            }
         });
 
         document.addEventListener('keyup', function(event) {
-          if (event.key === pushToTalkKey && isPushToTalkActive) {
-            // Stoppe das Senden von Audiodaten
-            isPushToTalkActive = false;
-            stopSendingAudio();
-          }
+            if (event.key === pushToTalkKey && isPushToTalkActive) {
+                // Stoppe das Senden von Audiodaten
+                isPushToTalkActive = false;
+                stopSendingAudio();
+            }
         });
 
         function startSendingAudio() {
-          // Code zum Senden von Audiodaten
+            // Code zum Senden von Audiodaten
         }
 
         function stopSendingAudio() {
-          // Code zum Stoppen des Sendens von Audiodaten
+            // Code zum Stoppen des Sendens von Audiodaten
         }
 
         $(document).ready(function() {
             // Zugriff auf das Mikrofon erhalten und Lautstärke darstellen
             navigator.mediaDevices.getUserMedia({ audio: true })
-              .then(function(stream) {
+            .then(function(stream) {
                 var audioContext = new AudioContext();
                 var audioInput = audioContext.createMediaStreamSource(stream);
                 var analyser = audioContext.createAnalyser();
                 audioInput.connect(analyser);
-                
+
                 var canvas = document.getElementById("volume-meter");
                 var canvasCtx = canvas.getContext("2d");
                 var bufferLength = analyser.frequencyBinCount;
                 var dataArray = new Uint8Array(bufferLength);
 
                 function draw() {
-                  requestAnimationFrame(draw);
-                  
-                  analyser.getByteFrequencyData(dataArray);
-                  var volume = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
-                  
-                  canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                  canvasCtx.fillStyle = 'green';
-                  canvasCtx.fillRect(0, 0, volume * canvas.width, canvas.height);
+                    requestAnimationFrame(draw);
+
+                    analyser.getByteFrequencyData(dataArray);
+                    var volume = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
+
+                    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                    canvasCtx.fillStyle = 'green';
+                    canvasCtx.fillRect(0, 0, volume * canvas.width, canvas.height);
                 }
-                
+
                 draw();
-              })
-              .catch(function(err) {
+            })
+            .catch(function(err) {
                 console.log('The following getUserMedia error occurred: ' + err);
-              });
+            });
         });
-        
+
         // Funktion zum Analysieren und Ersetzen von Emoji-Zeichen
         function parseEmojis() {
             var messages = document.getElementsByClassName('message-text');
@@ -166,7 +238,7 @@ function showSuccess($message) {
             <div class="col-md-3">
                 <h2>Servers</h2>
                 <ul class="list-group">
-                      <?php
+                    <?php
                     // Server des Benutzers abrufen
                     $stmt = $pdo->prepare('SELECT * FROM servers JOIN server_members ON servers.id = server_members.server_id WHERE server_members.user_id = ?');
                     $stmt->execute([$_SESSION['user_id']]);
@@ -190,15 +262,15 @@ function showSuccess($message) {
             </div>
             <div class="col-md-6">
                 <h2>Chat</h2>
-               <div id="messages" class="border p-3" style="height: 400px; overflow-y: scroll;">
-    <?php foreach ($messages as $message): ?>
-        <div>
-            <strong><?= htmlspecialchars($message['username']) ?>:</strong>
-            <p class="message-text"><?= htmlspecialchars($message['message']) ?></p>
-            <span><?= $message['created_at'] ?></span>
-        </div>
-    <?php endforeach; ?>
-</div>
+                <div id="messages" class="border p-3" style="height: 400px; overflow-y: scroll;">
+                    <?php foreach ($messages as $message): ?>
+                        <div>
+                            <strong><?= htmlspecialchars($message['username']) ?>:</strong>
+                            <p class="message-text"><?= $message['message'] ?></p>
+                            <span><?= $message['created_at'] ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
                 <form method="post" class="mt-3">
                     <div class="form-group">
                         <textarea id="message" name="message" class="form-control" required placeholder="Enter your message"></textarea>
